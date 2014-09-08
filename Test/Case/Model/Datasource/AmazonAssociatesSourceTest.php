@@ -12,8 +12,6 @@
  *
  * @copyright     Copyright 2005-2009, Cake Software Foundation, Inc. (http://cakefoundation.org)
  * @link          http://cakephp.org CakePHP(tm) Project
- * @package       datasources
- * @subpackage    datasources.tests.cases.models.datasources
  * @since         CakePHP Datasources v 0.3
  * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
  */
@@ -25,28 +23,40 @@
 App::uses('AmazonAssociatesSource', 'Datasources.Model/Datasource');
 
 /**
+ * Test datasource to test AmazonAssociatesSource::_signQuery();
+ */
+class AmazonAssociatesTestDataSource extends AmazonAssociatesSource {
+
+/**
+ * Public wrapper for the protected _signQuery method.
+ *
+ * @return string Url.
+ */
+	public function signQuery() {
+		return parent::_signQuery();
+	}
+
+}
+
+/**
  * AmazonAssociatesTestCase
  *
- * @package       datasources
- * @subpackage    datasources.tests.cases.models.datasources
  */
-class AmazonAssociatesTestCase extends CakeTestCase {
+class AmazonAssociatesTest extends CakeTestCase {
 
 /**
  * Amazon Datasource object
  *
  * @var MockAmazonAssocatesSource
- * @access public
  */
-	var $Amazon = null;
+	public $Amazon = null;
 
 /**
  * Configuration
  *
  * @var array
- * @access public
  */
-	var $config = array(
+	public $config = array(
 		'key' => 'PUBLICKEY',
 		'secret' => 'SECRETKEY',
 		'tag' => 'ASSID',
@@ -57,9 +67,8 @@ class AmazonAssociatesTestCase extends CakeTestCase {
  * Start Test
  *
  * @return void
- * @access public
  */
-	function startTest($method){
+	public function startTest($method) {
 		$this->Amazon = $this->getMock('AmazonAssociatesSource', array('_request'), array($this->config));
 	}
 
@@ -67,11 +76,10 @@ class AmazonAssociatesTestCase extends CakeTestCase {
  * testFind
  *
  * @return void
- * @access public
  */
-	function testFind(){
+	public function testFind() {
 		$this->Amazon->expects($this->any())
-					 ->method('_request');
+			->method('_request');
 		$this->Amazon->find('DVD', array('title' => 'harry'));
 
 		$this->assertEqual('AWSECommerceService', $this->Amazon->query['Service']);
@@ -83,7 +91,7 @@ class AmazonAssociatesTestCase extends CakeTestCase {
 		$this->assertEqual('ItemSearch', $this->Amazon->query['Operation']);
 
 		$this->Amazon->expects($this->any())
-					 ->method('_request');
+			->method('_request');
 		$this->Amazon->find('DVD', 'harry');
 		$this->assertEqual('AWSECommerceService', $this->Amazon->query['Service']);
 		$this->assertEqual('PUBLICKEY', $this->Amazon->query['AWSAccessKeyId']);
@@ -98,11 +106,10 @@ class AmazonAssociatesTestCase extends CakeTestCase {
  * testFindById
  *
  * @return void
- * @access public
  */
-	function testFindById(){
+	public function testFindById() {
 		$this->Amazon->expects($this->any())
-					 ->method('_request');
+			->method('_request');
 		$this->Amazon->findById('ITEMID');
 
 		$this->assertEqual('AWSECommerceService', $this->Amazon->query['Service']);
@@ -117,9 +124,8 @@ class AmazonAssociatesTestCase extends CakeTestCase {
  * testSignQuery
  *
  * @return void
- * @access public
  */
-	function testSignQuery(){
+	public function testSignQuery() {
 		$query = array(
 			'Service' => 'AWSECommerceService',
 			'AWSAccessKeyId' => 'PUBLICKEY',
@@ -137,9 +143,8 @@ class AmazonAssociatesTestCase extends CakeTestCase {
  * End Test
  *
  * @return void
- * @access public
  */
-	function endTest($method){
+	public function endTest($method) {
 		unset($this->Amazon);
 	}
 }

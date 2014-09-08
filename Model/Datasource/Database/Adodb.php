@@ -12,13 +12,11 @@
  *
  * @copyright     Copyright 2005-2009, Cake Software Foundation, Inc. (http://cakefoundation.org)
  * @link          http://cakephp.org CakePHP(tm) Project
- * @package       datasources
- * @subpackage    datasources.models.datasources.dbo
  * @since         CakePHP Datasources v 0.1
  * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
  */
 
-App::import('Datasource','DboSource');
+App::uses('DboSource', 'Model/Datasource');
 
 /**
  * Include AdoDB files.
@@ -30,8 +28,6 @@ App::import('Vendor', 'NewADOConnection', array('file' => 'adodb' . DS . 'adodb.
  *
  * Database abstraction implementation for the AdoDB library.
  *
- * @package       cake
- * @subpackage    cake.cake.libs.model.datasources.dbo
  */
 class Adodb extends DboSource {
 
@@ -40,23 +36,21 @@ class Adodb extends DboSource {
  *
  * @var string
  */
-	var $description = "ADOdb DBO Driver";
+	public $description = "ADOdb DBO Driver";
 
 /**
  * ADOConnection object with which we connect.
  *
  * @var ADOConnection The connection object.
- * @access private
  */
-	var $_adodb = null;
+	protected $_adodb = null;
 
 /**
  * Array translating ADOdb column MetaTypes to cake-supported metatypes
  *
  * @var array
- * @access private
  */
-	var $_adodbColumnTypes = array(
+	protected $_adodbColumnTypes = array(
 		'string' => 'C',
 		'text' => 'X',
 		'date' => 'D',
@@ -74,14 +68,14 @@ class Adodb extends DboSource {
  *
  * @var array
  */
-	var $columns = array(
+	public $columns = array(
 		'primary_key' => array('name' => 'R', 'limit' => 11),
 		'string' => array('name' => 'C', 'limit' => '255'),
 		'text' => array('name' => 'X'),
 		'integer' => array('name' => 'I', 'limit' => '11', 'formatter' => 'intval'),
 		'float' => array('name' => 'N', 'formatter' => 'floatval'),
 		'timestamp' => array('name' => 'T', 'format' => 'Y-m-d H:i:s', 'formatter' => 'date'),
-		'time' => array('name' => 'T',  'format' => 'H:i:s', 'formatter' => 'date'),
+		'time' => array('name' => 'T', 'format' => 'H:i:s', 'formatter' => 'date'),
 		'datetime' => array('name' => 'T', 'format' => 'Y-m-d H:i:s', 'formatter' => 'date'),
 		'date' => array('name' => 'D', 'format' => 'Y-m-d', 'formatter' => 'date'),
 		'binary' => array('name' => 'B'),
@@ -93,23 +87,23 @@ class Adodb extends DboSource {
  *
  * @param array $config Configuration array for connecting
  */
-	function connect() {
+	public function connect() {
 		$config = $this->config;
 		$persistent = strrpos($config['connect'], '|p');
 
 		if ($persistent === false) {
-			$adodb_driver = $config['connect'];
+			$adodbDriver = $config['connect'];
 			$connect = 'Connect';
 		} else {
-			$adodb_driver = substr($config['connect'], 0, $persistent);
+			$adodbDriver = substr($config['connect'], 0, $persistent);
 			$connect = 'PConnect';
 		}
 		if (!$this->enabled()) {
 			return false;
 		}
-		$this->_adodb = NewADOConnection($adodb_driver);
+		$this->_adodb = NewADOConnection($adodbDriver);
 
-		$this->_adodbDataDict = NewDataDictionary($this->_adodb, $adodb_driver);
+		$this->_adodbDataDict = NewDataDictionary($this->_adodb, $adodbDriver);
 
 		$this->startQuote = $this->_adodb->nameQuote;
 		$this->endQuote = $this->_adodb->nameQuote;
@@ -124,7 +118,7 @@ class Adodb extends DboSource {
  *
  * @return boolean
  */
-	function enabled() {
+	public function enabled() {
 		return function_exists('NewADOConnection');
 	}
 /**
@@ -132,7 +126,7 @@ class Adodb extends DboSource {
  *
  * @return boolean True if the database could be disconnected, else false
  */
-	function disconnect() {
+	public function disconnect() {
 		return $this->_adodb->Close();
 	}
 
@@ -140,20 +134,25 @@ class Adodb extends DboSource {
  * Executes given SQL statement.
  *
  * @param string $sql SQL statement
+ * @param array $params list of params to be bound to query
+ * @param array $prepareOptions Options to be used in the prepare statement
  * @return resource Result resource identifier
  */
-	function _execute($sql) {
+	protected function _execute($sql, $params = array(), $prepareOptions = array()) {
+		// @codingStandardsIgnoreStart
 		global $ADODB_FETCH_MODE;
 		$ADODB_FETCH_MODE = ADODB_FETCH_ASSOC;
+		// @codingStandardsIgnoreEnd
 		return $this->_adodb->execute($sql);
 	}
 
 /**
  * Returns a row from current resultset as an array .
  *
+ * @param string $sql Some SQL to be executed.
  * @return array The fetched row as an array
  */
-	function fetchRow($sql = null) {
+	public function fetchRow($sql = null) {
 		if (!empty($sql) && is_string($sql) && strlen($sql) > 5) {
 			if (!$this->execute($sql)) {
 				return null;
@@ -172,12 +171,11 @@ class Adodb extends DboSource {
 /**
  * Begin a transaction
  *
- * @param unknown_type $model
  * @return boolean True on success, false on fail
  * (i.e. if the database/model does not support transactions).
  */
-	function begin(&$model) {
-		if (parent::begin($model)) {
+	public function begin() {
+		if (parent::begin()) {
 			if ($this->_adodb->BeginTrans()) {
 				$this->_transactionStarted = true;
 				return true;
@@ -189,13 +187,12 @@ class Adodb extends DboSource {
 /**
  * Commit a transaction
  *
- * @param unknown_type $model
  * @return boolean True on success, false on fail
  * (i.e. if the database/model does not support transactions,
  * or a transaction has not started).
  */
-	function commit(&$model) {
-		if (parent::commit($model)) {
+	public function commit() {
+		if (parent::commit()) {
 			$this->_transactionStarted = false;
 			return $this->_adodb->CommitTrans();
 		}
@@ -205,13 +202,12 @@ class Adodb extends DboSource {
 /**
  * Rollback a transaction
  *
- * @param unknown_type $model
  * @return boolean True on success, false on fail
  * (i.e. if the database/model does not support transactions,
  * or a transaction has not started).
  */
-	function rollback(&$model) {
-		if (parent::rollback($model)) {
+	public function rollback() {
+		if (parent::rollback()) {
 			return $this->_adodb->RollbackTrans();
 		}
 		return false;
@@ -220,9 +216,10 @@ class Adodb extends DboSource {
 /**
  * Returns an array of tables in the database. If there are no tables, an error is raised and the application exits.
  *
+ * @param mixed $data
  * @return array Array of tablenames in the database
  */
-	function listSources() {
+	public function listSources($data = null) {
 		$tables = $this->_adodb->MetaTables('TABLES');
 
 		if (!count($tables) > 0) {
@@ -238,7 +235,7 @@ class Adodb extends DboSource {
  * @param AppModel $model Model object
  * @return array Fields in table. Keys are name and type
  */
-	function describe(&$model) {
+	public function describe($model) {
 		$cache = parent::describe($model);
 		if ($cache != null) {
 			return $cache;
@@ -261,45 +258,47 @@ class Adodb extends DboSource {
 			}
 		}
 
-		$this->__cacheDescription($this->fullTableName($model, false), $fields);
+		$this->_cacheDescription($this->fullTableName($model, false), $fields);
 		return $fields;
 	}
 
 /**
  * Returns a formatted error message from previous database operation.
  *
+ * @param PDOStatement $query the query to extract the error from if any
  * @return string Error message
  */
-	function lastError() {
+	public function lastError(PDOStatement $query = null) {
 		return $this->_adodb->ErrorMsg();
 	}
 
 /**
  * Returns number of affected rows in previous database operation, or false if no previous operation exists.
  *
+ * @param mixed $source
  * @return integer Number of affected rows
  */
-	function lastAffected() {
+	public function lastAffected($source = null) {
 		return $this->_adodb->Affected_Rows();
 	}
 
 /**
  * Returns number of rows in previous resultset, or false if no previous resultset exists.
  *
+ * @param mixed $source
  * @return integer Number of rows in resultset
  */
-	function lastNumRows() {
+	public function lastNumRows($source = null) {
 		return $this->_result ? $this->_result->RecordCount() : false;
 	}
 
 /**
  * Returns the ID generated from the previous INSERT operation.
  *
- * @return int
- *
- * @Returns the last autonumbering ID inserted. Returns false if function not supported.
+ * @param mixed $source
+ * @return integer Returns the last autonumbering ID inserted. Returns false if function not supported.
  */
-	function lastInsertId() {
+	public function lastInsertId($source = null) {
 		return $this->_adodb->Insert_ID();
 	}
 
@@ -311,7 +310,7 @@ class Adodb extends DboSource {
  * @return string SQL limit/offset statement
  * @todo Please change output string to whatever select your database accepts. adodb doesn't allow us to get the correct limit string out of it.
  */
-	function limit($limit, $offset = null) {
+	public function limit($limit, $offset = null) {
 		if ($limit) {
 			$rt = '';
 			if (!strpos(strtolower($limit), 'limit') || strpos(strtolower($limit), 'limit') === 0) {
@@ -336,26 +335,26 @@ class Adodb extends DboSource {
  * @param string $real Real database-layer column type (i.e. "varchar(255)")
  * @return string Abstract column type (i.e. "string")
  */
-	function column($real) {
+	public function column($real) {
 		$metaTypes = array_flip($this->_adodbColumnTypes);
 
-		$interpreted_type = $this->_adodbMetatyper->MetaType($real);
+		$interpretedType = $this->_adodbMetatyper->MetaType($real);
 
-		if (!isset($metaTypes[$interpreted_type])) {
+		if (!isset($metaTypes[$interpretedType])) {
 			return 'text';
 		}
-		return $metaTypes[$interpreted_type];
+		return $metaTypes[$interpretedType];
 	}
 
 /**
  * Returns a quoted and escaped string of $data for use in an SQL statement.
  *
  * @param string $data String to be prepared for use in an SQL statement
- * @param string $column_type The type of the column into which this data will be inserted
+ * @param string $column The type of the column into which this data will be inserted
  * @param boolean $safe Whether or not numeric data should be handled automagically if no column data is provided
  * @return string Quoted and escaped data
  */
-	function value($data, $column = null, $safe = false) {
+	public function value($data, $column = null, $safe = false) {
 		$parent = parent::value($data, $column, $safe);
 		if ($parent != null) {
 			return $parent;
@@ -377,9 +376,10 @@ class Adodb extends DboSource {
  * @param Model $model
  * @param string $alias Alias tablename
  * @param mixed $fields
+ * @param boolean $quote
  * @return array
  */
-	function fields(&$model, $alias = null, $fields = array(), $quote = true) {
+	public function fields(Model $model, $alias = null, $fields = array(), $quote = true) {
 		if (empty($alias)) {
 			$alias = $model->alias;
 		}
@@ -390,7 +390,7 @@ class Adodb extends DboSource {
 		}
 		$count = count($fields);
 
-		if ($count >= 1 && $fields[0] != '*' && strpos($fields[0], 'COUNT(*)') === false) {
+		if ($count >= 1 && $fields[0] !== '*' && strpos($fields[0], 'COUNT(*)') === false) {
 			for ($i = 0; $i < $count; $i++) {
 				if (!preg_match('/^.+\\(.*\\)/', $fields[$i]) && !preg_match('/\s+AS\s+/', $fields[$i])) {
 					$prepend = '';
@@ -416,15 +416,15 @@ class Adodb extends DboSource {
  *
  * @param array $results
  */
-	function resultSet(&$results) {
-		$num_fields = count($results);
+	public function resultSet(&$results) {
+		$numFields = count($results);
 		$fields = array_keys($results);
 		$this->results =& $results;
 		$this->map = array();
 		$index = 0;
 		$j = 0;
 
-		while ($j < $num_fields) {
+		while ($j < $numFields) {
 			$columnName = $fields[$j];
 
 			if (strpos($columnName, '__')) {
@@ -442,7 +442,7 @@ class Adodb extends DboSource {
  *
  * @return unknown
  */
-	function fetchResult() {
+	public function fetchResult() {
 		if (!empty($this->results)) {
 			$row = $this->results;
 			$this->results = null;
@@ -472,7 +472,7 @@ class Adodb extends DboSource {
  *                      where options can be 'default', 'length', or 'key'.
  * @return string
  */
-	function buildColumn($column) {
+	public function buildColumn($column) {
 		$name = $type = null;
 		extract(array_merge(array('null' => true), $column));
 
@@ -491,7 +491,7 @@ class Adodb extends DboSource {
 		$real = $this->columns[$type];
 
 		//UUIDs are broken so fix them.
-		if ($type == 'string' && isset($real['length']) && $real['length'] == 36) {
+		if ($type === 'string' && isset($real['length']) && $real['length'] == 36) {
 			$concreteType = 'CHAR';
 		}
 
@@ -511,10 +511,10 @@ class Adodb extends DboSource {
 		}
 		$_notNull = $_default = $_autoInc = $_constraint = $_unsigned = false;
 
-		if (isset($column['key']) && $column['key'] == 'primary' && $type == 'integer') {
+		if (isset($column['key']) && $column['key'] === 'primary' && $type === 'integer') {
 			$_constraint = '';
 			$_autoInc = true;
-		} elseif (isset($column['key']) && $column['key'] == 'primary') {
+		} elseif (isset($column['key']) && $column['key'] === 'primary') {
 			$_notNull = '';
 		} elseif (isset($column['default']) && isset($column['null']) && $column['null'] == false) {
 			$_notNull = true;
@@ -532,7 +532,6 @@ class Adodb extends DboSource {
 		//use concrete instance of DataDict to make the suffixes for us.
 		$out .=	$this->_adodbDataDict->_CreateSuffix($out, $metaType, $_notNull, $_default, $_autoInc, $_constraint, $_unsigned);
 		return $out;
-
 	}
 
 /**
@@ -540,7 +539,7 @@ class Adodb extends DboSource {
  *
  * @return boolean True if the result is valid, else false
  */
-	function hasResult() {
+	public function hasResult() {
 		return is_object($this->_result) && !$this->_result->EOF;
 	}
 }
